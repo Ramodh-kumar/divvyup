@@ -1,4 +1,4 @@
-import type { Balances, Expense, Member, Settlement, Snapshot } from './types';
+import type { Balances, ChangesResponse, Expense, Member, Settlement, Snapshot } from './types';
 
 export class ApiError extends Error {
   constructor(
@@ -45,6 +45,7 @@ export function createApi(token: string, getActor: () => string | null) {
     expenses: () => call<{ expenses: Expense[] }>('GET', '/api/expenses').then((r) => r.expenses),
     settlements: () => call<{ settlements: Settlement[] }>('GET', '/api/settlements').then((r) => r.settlements),
     balances: () => call<Balances>('GET', '/api/balances'),
+    changes: (since: number) => call<ChangesResponse>('GET', `/api/changes?since=${since}`),
     createExpense: (body: Record<string, unknown>) => call<Expense>('POST', '/api/expenses', body),
     replaceExpense: (id: string, body: Record<string, unknown>) => call<Expense>('PUT', `/api/expenses/${id}`, body),
     deleteExpense: (id: string, revision: number) => call<{ ok: true }>('DELETE', `/api/expenses/${id}?revision=${revision}`),

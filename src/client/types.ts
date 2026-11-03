@@ -58,6 +58,23 @@ export interface Transfer {
   amountPaise: number;
 }
 
+/** One entry of the changes feed (`GET /api/changes`). */
+export interface Change {
+  version: number;
+  entity: string;
+  entityId: string;
+  action: string;
+  actorMemberId: string | null;
+  at: number;
+}
+
+export interface ChangesResponse {
+  version: number;
+  changed: boolean;
+  events: Change[];
+  hasMore: boolean;
+}
+
 export interface Balances {
   version: number;
   balances: Record<string, number>;

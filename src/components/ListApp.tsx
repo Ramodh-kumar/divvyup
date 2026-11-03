@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { describeChanges } from '../client/activity';
 import { copyText, listUrl } from '../client/format';
 import { getMe, saveList, setMe as storeMe } from '../client/storage';
+import type { Expense, Member } from '../client/types';
 import { useListData } from '../client/useListData';
 import { formatINR } from '../lib/money';
-import type { Expense } from '../client/types';
 import BalancesTab from './BalancesTab';
 import ExpenseForm from './ExpenseForm';
 import ExpensesTab from './ExpensesTab';
@@ -38,12 +39,28 @@ export default function ListApp({ token }: { token: string }) {
     setFormKey((k) => k + 1);
     setFormFor(target);
   };
-  const { api, data, status, error, reload } = useListData(token, () => meRef.current);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const membersRef = useRef<Member[]>([]);
+
+  const { api, data, status, error, online, reload } = useListData(
+    token,
+    () => meRef.current,
+    (changes) => {
+      const message = describeChanges(changes, membersRef.current, meRef.current);
+      if (!message) return;
+      setToast(message);
+      clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToast(null), 5000);
+    },
+  );
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
 
   const listId = data?.snapshot.list.id;
   const listName = data?.snapshot.list.name;
   const role = data?.snapshot.role;
   const members = data?.snapshot.members;
+  if (members) membersRef.current = members;
 
   // Restore "I am" once we know the list, and forget it if that person has since been removed.
   useEffect(() => {
@@ -185,6 +202,15 @@ export default function ListApp({ token }: { token: string }) {
           }}
         />
       )}
+
+      {/* Live-sync status: a toast for other people's changes, and a notice while we cannot reach the server. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4" role="status" aria-live="polite">
+        {!online ? (
+          <p className="rounded-full bg-amber-500 px-4 py-2 text-sm font-medium text-white shadow-lg">Offline. Retrying…</p>
+        ) : toast ? (
+          <p className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg dark:bg-slate-100 dark:text-slate-900">{toast}</p>
+        ) : null}
+      </div>
 
       {showPicker && (
         <div className="fixed inset-0 z-10 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="who-h">
