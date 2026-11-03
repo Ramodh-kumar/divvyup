@@ -1,6 +1,7 @@
 import { and, eq, isNull, or } from 'drizzle-orm';
 import type { Db } from './db';
 import { error } from './http';
+import { checkWriteRate } from './rate-limit';
 import { lists, members } from './schema';
 import { hashToken } from './tokens';
 
@@ -49,6 +50,10 @@ export async function authenticate(
   const access = await resolveToken(db, token);
   // Same response for unknown and malformed tokens so tokens cannot be probed.
   if (!access) return error(404, 'List not found');
-  if (need === 'edit' && access.role !== 'edit') return error(403, 'This link is read-only');
+  if (need === 'edit') {
+    if (access.role !== 'edit') return error(403, 'This link is read-only');
+    const limited = await checkWriteRate(db, access.list.id, access.list.version);
+    if (limited) return limited;
+  }
   return access;
 }

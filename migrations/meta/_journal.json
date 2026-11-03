@@ -8,6 +8,13 @@
       "when": 1793710973803,
       "tag": "0000_classy_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793712318915,
+      "tag": "0001_useful_wasp",
+      "breakpoints": true
     }
   ]
 }

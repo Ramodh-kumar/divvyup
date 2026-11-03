@@ -129,6 +129,17 @@ export const settlements = sqliteTable(
   (t) => [index('settlements_list_idx').on(t.listId)],
 );
 
+// Fixed-window counters for abuse limits. `key` is "<scope>:<hashed ip>"; `window` is the window start (unix seconds).
+export const rateLimits = sqliteTable(
+  'rate_limits',
+  {
+    key: text('key').notNull(),
+    window: integer('window').notNull(),
+    count: integer('count').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.window] })],
+);
+
 // Append-only audit log: powers the activity feed, undo and the changes feed.
 export const events = sqliteTable(
   'events',
