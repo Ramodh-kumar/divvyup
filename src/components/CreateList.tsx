@@ -1,50 +1,8 @@
 import { useState } from 'react';
 import { ApiError, createList, type CreatedList } from '../client/api';
-import { copyText, listUrl } from '../client/format';
 import { saveList } from '../client/storage';
+import ShareLinks from './ShareLinks';
 import { btnPrimary, btnSecondary, card, ErrorNote, input } from './ui';
-
-function CopyRow({ label, hint, token }: { label: string; hint: string; token: string }) {
-  const [copied, setCopied] = useState(false);
-  const url = listUrl(token);
-  return (
-    <div>
-      <p className="text-sm font-semibold">{label}</p>
-      <p className="mb-1.5 text-xs text-slate-500 dark:text-slate-400">{hint}</p>
-      <div className="flex gap-2">
-        <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} className={`${input} font-mono text-xs`} aria-label={label} />
-        <button
-          type="button"
-          className={btnSecondary}
-          onClick={async () => {
-            setCopied(await copyText(url));
-            setTimeout(() => setCopied(false), 1500);
-          }}
-        >
-          {copied ? 'Copied' : 'Copy'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Created({ name, created }: { name: string; created: CreatedList }) {
-  return (
-    <section className={`${card} space-y-5`} aria-live="polite">
-      <div>
-        <h2 className="text-xl font-bold">“{name}” is ready</h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          There are no accounts, so these links are the only way in. Save the edit link somewhere safe and share it with the people who should add expenses.
-        </p>
-      </div>
-      <CopyRow label="Edit link" hint="Anyone with this link can add and change expenses." token={created.editToken} />
-      <CopyRow label="View-only link" hint="Anyone with this link can look but not change anything." token={created.viewToken} />
-      <a href={`/l/${created.editToken}`} className={`${btnPrimary} w-full`}>
-        Open list
-      </a>
-    </section>
-  );
-}
 
 export default function CreateList() {
   const [name, setName] = useState('');
@@ -82,7 +40,7 @@ export default function CreateList() {
     }
   }
 
-  if (created) return <Created name={created.name} created={created.data} />;
+  if (created) return <ShareLinks title={`“${created.name}” is ready`} editToken={created.data.editToken} viewToken={created.data.viewToken} />;
 
   return (
     <form onSubmit={submit} className={`${card} space-y-5`}>

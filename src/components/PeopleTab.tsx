@@ -49,6 +49,7 @@ export default function PeopleTab({ members, me, canEdit, api, onChanged }: Prop
                 type="button"
                 className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-rose-600 disabled:opacity-50 dark:hover:bg-slate-800"
                 disabled={busy}
+                aria-label={`Remove ${m.name}`}
                 onClick={() => {
                   if (confirm(`Remove ${m.name} from this list?`)) run(() => api.removeMember(m.id));
                 }}

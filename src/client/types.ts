@@ -37,6 +37,7 @@ export interface Expense {
   updatedBy: string | null;
   createdAt: number;
   updatedAt: number;
+  deletedAt: number | null;
   payers: Share[];
   splits: Share[];
   tags: string[];
@@ -50,6 +51,15 @@ export interface Settlement {
   paidOn: string;
   createdBy: string | null;
   createdAt: number;
+  deletedAt: number | null;
+}
+
+/** What `GET /api/trash` returns: deleted items that can still be restored. */
+export interface Trash {
+  retentionDays: number;
+  expenses: Expense[];
+  settlements: Settlement[];
+  members: { id: string; name: string; color: string | null; deletedAt: number }[];
 }
 
 export interface Transfer {

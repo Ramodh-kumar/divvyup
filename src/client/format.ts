@@ -12,7 +12,33 @@ export function formatDate(iso: string): string {
 /** Today's date in the user's own time zone as YYYY-MM-DD. */
 export const today = () => new Date().toLocaleDateString('en-CA');
 
-export const listUrl = (token: string) => `${location.origin}/l/${token}`;
+/** "3 days ago", from a unix timestamp in seconds. */
+export function timeAgo(unixSeconds: number, now = Date.now()): string {
+  const s = Math.max(0, Math.floor(now / 1000) - unixSeconds);
+  if (s < 60) return 'just now';
+  const units: [number, string][] = [[86400, 'day'], [3600, 'hour'], [60, 'minute']];
+  for (const [size, name] of units) {
+    if (s >= size) {
+      const n = Math.floor(s / size);
+      return `${n} ${name}${n === 1 ? '' : 's'} ago`;
+    }
+  }
+  return 'just now';
+}
+
+/** Save a Blob as a file, using a temporary link. */
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export const listUrl =(token: string) => `${location.origin}/l/${token}`;
 
 export async function copyText(text: string): Promise<boolean> {
   try {

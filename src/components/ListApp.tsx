@@ -8,14 +8,16 @@ import { formatINR } from '../lib/money';
 import BalancesTab from './BalancesTab';
 import ExpenseForm from './ExpenseForm';
 import ExpensesTab from './ExpensesTab';
+import MoreTab from './MoreTab';
 import PeopleTab from './PeopleTab';
 import { Avatar, btnPrimary, btnSecondary, card } from './ui';
 
-type Tab = 'expenses' | 'balances' | 'people';
+type Tab = 'expenses' | 'balances' | 'people' | 'more';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'expenses', label: 'Expenses' },
   { id: 'balances', label: 'Balances' },
   { id: 'people', label: 'People' },
+  { id: 'more', label: 'More' },
 ];
 
 export default function ListApp({ token }: { token: string }) {
@@ -148,7 +150,7 @@ export default function ListApp({ token }: { token: string }) {
         </p>
       )}
 
-      <div role="tablist" aria-label="List sections" className="grid grid-cols-3 gap-1 rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800">
+      <div role="tablist" aria-label="List sections" className="grid grid-cols-4 gap-1 rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -182,6 +184,7 @@ export default function ListApp({ token }: { token: string }) {
           <BalancesTab balances={balances} settlements={settlements} members={snapshot.members} me={me} canEdit={canEdit} api={api} onChanged={reload} />
         )}
         {tab === 'people' && <PeopleTab members={snapshot.members} me={me} canEdit={canEdit} api={api} onChanged={reload} />}
+        {tab === 'more' && <MoreTab api={api} members={snapshot.members} canEdit={canEdit} onChanged={reload} />}
       </div>
 
       {formFor && (

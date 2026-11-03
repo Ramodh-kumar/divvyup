@@ -103,7 +103,7 @@ describe('previewSplit', () => {
 describe('draftFromExpense', () => {
   const expense = (over: Partial<Expense>): Expense => ({
     id: 'e1', description: 'Villa', amountPaise: 100000, splitType: 'equal', paidOn: '2026-11-01', categoryId: 'cat', note: null,
-    revision: 3, createdBy: null, updatedBy: null, createdAt: 0, updatedAt: 0,
+    revision: 3, createdBy: null, updatedBy: null, createdAt: 0, updatedAt: 0, deletedAt: null,
     payers: [{ memberId: 'b', amountPaise: 100000 }],
     splits: [{ memberId: 'a', amountPaise: 50000 }, { memberId: 'b', amountPaise: 50000 }],
     tags: ['goa'], ...over,
