@@ -3,7 +3,9 @@ import { copyText, listUrl } from '../client/format';
 import { getMe, saveList, setMe as storeMe } from '../client/storage';
 import { useListData } from '../client/useListData';
 import { formatINR } from '../lib/money';
+import type { Expense } from '../client/types';
 import BalancesTab from './BalancesTab';
+import ExpenseForm from './ExpenseForm';
 import ExpensesTab from './ExpensesTab';
 import PeopleTab from './PeopleTab';
 import { Avatar, btnPrimary, btnSecondary, card } from './ui';
@@ -29,6 +31,13 @@ export default function ListApp({ token }: { token: string }) {
     history.replaceState(null, '', `#${t}`);
   };
   const [copied, setCopied] = useState(false);
+  // null = closed, 'new' = adding, an Expense = editing it. `formKey` remounts the form so it starts fresh each time.
+  const [formFor, setFormFor] = useState<'new' | Expense | null>(null);
+  const [formKey, setFormKey] = useState(0);
+  const openForm = (target: 'new' | Expense) => {
+    setFormKey((k) => k + 1);
+    setFormFor(target);
+  };
   const { api, data, status, error, reload } = useListData(token, () => meRef.current);
 
   const listId = data?.snapshot.list.id;
@@ -139,12 +148,43 @@ export default function ListApp({ token }: { token: string }) {
       </div>
 
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-        {tab === 'expenses' && <ExpensesTab expenses={expenses} members={snapshot.members} categories={snapshot.categories} me={me} />}
+        {tab === 'expenses' && (
+          <div className="space-y-4">
+            {canEdit &&
+              (snapshot.members.length > 0 ? (
+                <button type="button" className={`${btnPrimary} w-full`} onClick={() => openForm('new')}>
+                  + Add expense
+                </button>
+              ) : (
+                <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">Add people in the People tab before adding expenses.</p>
+              ))}
+            <ExpensesTab expenses={expenses} members={snapshot.members} categories={snapshot.categories} me={me} onSelect={canEdit ? openForm : undefined} />
+          </div>
+        )}
         {tab === 'balances' && (
           <BalancesTab balances={balances} settlements={settlements} members={snapshot.members} me={me} canEdit={canEdit} api={api} onChanged={reload} />
         )}
         {tab === 'people' && <PeopleTab members={snapshot.members} me={me} canEdit={canEdit} api={api} onChanged={reload} />}
       </div>
+
+      {formFor && (
+        <ExpenseForm
+          key={formKey}
+          members={snapshot.members}
+          categories={snapshot.categories}
+          me={me}
+          api={api}
+          expense={formFor === 'new' ? undefined : formFor}
+          onClose={() => {
+            setFormFor(null);
+            reload(); // the user may have closed after a conflict or a deletion elsewhere; show the latest
+          }}
+          onSaved={async () => {
+            await reload();
+            setFormFor(null);
+          }}
+        />
+      )}
 
       {showPicker && (
         <div className="fixed inset-0 z-10 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="who-h">

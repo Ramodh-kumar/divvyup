@@ -8,6 +8,8 @@ interface Props {
   members: Member[];
   categories: Category[];
   me: string | null;
+  /** When set, rows are tappable (used to edit). Omitted for read-only links. */
+  onSelect?: (e: Expense) => void;
 }
 
 const sumFor = (rows: { memberId: string; amountPaise: number }[], id: string) =>
@@ -18,7 +20,7 @@ function myEffect(e: Expense, me: string): number {
   return sumFor(e.payers, me) - sumFor(e.splits, me);
 }
 
-export default function ExpensesTab({ expenses, members, categories, me }: Props) {
+export default function ExpensesTab({ expenses, members, categories, me, onSelect }: Props) {
   const name = (id: string) => (id === me ? 'You' : members.find((m) => m.id === id)?.name ?? 'Someone');
   const category = (id: string | null) => categories.find((c) => c.id === id);
 
@@ -44,8 +46,9 @@ export default function ExpensesTab({ expenses, members, categories, me }: Props
             {items.map((e) => {
               const effect = me ? myEffect(e, me) : 0;
               const cat = category(e.categoryId);
-              return (
-                <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+              const row = 'flex w-full items-center gap-3 px-4 py-3 text-left';
+              const content = (
+                <>
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg dark:bg-slate-800" aria-hidden="true">
                     {cat?.icon ?? '🧾'}
                   </span>
@@ -68,6 +71,17 @@ export default function ExpensesTab({ expenses, members, categories, me }: Props
                       <p className="text-xs text-slate-400">{me ? 'not involved' : ''}</p>
                     )}
                   </div>
+                </>
+              );
+              return (
+                <li key={e.id}>
+                  {onSelect ? (
+                    <button type="button" className={`${row} hover:bg-slate-50 dark:hover:bg-slate-800`} onClick={() => onSelect(e)} aria-label={`Edit ${e.description}`}>
+                      {content}
+                    </button>
+                  ) : (
+                    <div className={row}>{content}</div>
+                  )}
                 </li>
               );
             })}

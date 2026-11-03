@@ -45,6 +45,9 @@ export function createApi(token: string, getActor: () => string | null) {
     expenses: () => call<{ expenses: Expense[] }>('GET', '/api/expenses').then((r) => r.expenses),
     settlements: () => call<{ settlements: Settlement[] }>('GET', '/api/settlements').then((r) => r.settlements),
     balances: () => call<Balances>('GET', '/api/balances'),
+    createExpense: (body: Record<string, unknown>) => call<Expense>('POST', '/api/expenses', body),
+    replaceExpense: (id: string, body: Record<string, unknown>) => call<Expense>('PUT', `/api/expenses/${id}`, body),
+    deleteExpense: (id: string, revision: number) => call<{ ok: true }>('DELETE', `/api/expenses/${id}?revision=${revision}`),
     addMember: (name: string) => call<Member>('POST', '/api/members', { name }),
     removeMember: (id: string) => call<{ ok: true }>('DELETE', `/api/members/${id}`),
     addSettlement: (s: { fromMemberId: string; toMemberId: string; amountPaise: number; paidOn: string }) =>
