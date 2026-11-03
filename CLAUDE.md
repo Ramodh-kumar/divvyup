@@ -35,7 +35,7 @@ Every table carries `list_id` where relevant; mutable rows have `deleted_at`.
    - [x] Slice 3a: expenses. `GET|POST /api/expenses`, `PUT|DELETE /api/expenses/:id`. Body: `{description, amountPaise, paidOn, paidBy | payers[], split:{type: equal|exact|percent|shares, memberIds | entries}, categoryId?, note?, tags?: string[]}`; PUT also needs `revision`. Validation is the pure `parseExpenseInput` in `expense-input.ts` (unit tested). Stale revision -> 409 with the server copy in `current`. Zero-owed members are not stored in `expense_splits`. Tags are created by name on first use.
      - Concurrency: `revisionGuard` in `expenses.ts` is a statement inside the D1 batch that raises (`abs(min int64)` overflow) if the revision changed, rolling back the whole batch; the catch then maps it to 409. Verified: two parallel PUTs -> one 200, one 409, data intact.
      - Gotcha: `db.run(sql...)` type-checks but fails inside `db.batch` at runtime. Use query builders (`db.select({...}).from(...)`) for batch items.
-   - [ ] Slice 3b: settlements CRUD + `GET /api/balances` (use `computeBalances`/`suggestSettlements`)
+   - [x] Slice 3b: `GET|POST /api/settlements` (`{fromMemberId, toMemberId, amountPaise, paidOn}` = "from paid to"), `DELETE /api/settlements/:id` (soft; settlements are not edited, delete and re-add), `GET /api/balances` -> `{version, balances{memberId: netPaise}, transfers[], totalSpentPaise}`. Verified end to end; 31 unit tests.
    - [ ] Slice 4: changes feed (`GET /api/list/changes?since=`), rate limiting
 5. [ ] UI: landing/create-list, list view (expenses, balances, settle-up, activity), expense form, "I am" picker, mobile-first
 6. [ ] Live sync: polling hook, 409 conflict flow, optimistic updates
