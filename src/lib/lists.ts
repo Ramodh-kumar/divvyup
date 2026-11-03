@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from './db';
 import { categories, events, lists, members } from './schema';
 import { generateToken, hashToken, newId } from './tokens';
@@ -15,7 +15,7 @@ export const DEFAULT_CATEGORIES: { name: string; icon: string }[] = [
   { name: 'Other', icon: '📦' },
 ];
 
-const MEMBER_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+export const MEMBER_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
 export const LIMITS = { listName: 80, memberName: 40, members: 50 } as const;
 
@@ -76,7 +76,7 @@ export async function getSnapshot(db: Db, listId: string) {
   const list = await db.query.lists.findFirst({ where: eq(lists.id, listId) });
   if (!list) return null;
   const [memberRows, categoryRows] = await Promise.all([
-    db.select().from(members).where(and(eq(members.listId, listId), isNull(members.deletedAt))).orderBy(asc(members.createdAt), asc(members.name)),
+    db.select().from(members).where(and(eq(members.listId, listId), isNull(members.deletedAt))).orderBy(sql`rowid`),
     db.select().from(categories).where(and(eq(categories.listId, listId), isNull(categories.deletedAt))),
   ]);
   return {

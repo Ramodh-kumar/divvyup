@@ -1,7 +1,7 @@
 import { and, eq, isNull, or } from 'drizzle-orm';
 import type { Db } from './db';
 import { error } from './http';
-import { lists } from './schema';
+import { lists, members } from './schema';
 import { hashToken } from './tokens';
 
 export type Role = 'edit' | 'view';
@@ -19,6 +19,19 @@ export async function resolveToken(db: Db, token: string): Promise<Access | null
   });
   if (!list) return null;
   return { list, role: list.editTokenHash === hash ? 'edit' : 'view' };
+}
+
+/**
+ * The member a device says it is acting as (`X-Member-Id`), used only for attribution.
+ * Trust-based: it is validated to belong to the list but is not a security boundary.
+ */
+export async function actorFrom(db: Db, request: Request, listId: string): Promise<string | null> {
+  const id = request.headers.get('x-member-id');
+  if (!id) return null;
+  const member = await db.query.members.findFirst({
+    where: and(eq(members.id, id), eq(members.listId, listId), isNull(members.deletedAt)),
+  });
+  return member ? member.id : null;
 }
 
 /**
