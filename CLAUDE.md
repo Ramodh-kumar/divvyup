@@ -27,7 +27,7 @@ Every table carries `list_id` where relevant; mutable rows have `deleted_at`.
 
 ## Implementation checklist
 1. [x] Scaffold: Astro + React + Tailwind + Cloudflare adapter + wrangler/D1 config + Drizzle config
-2. [ ] Drizzle schema and first migration
+2. [x] Drizzle schema (`src/lib/schema.ts`) and first migration (`migrations/0000_*.sql`, verified against local D1)
 3. [ ] Core pure logic with Vitest tests: money/INR helpers, split calculators, balance derivation, settle-up
 4. [ ] API: create list, token auth middleware, CRUD (members, expenses, settlements), changes feed, rate limiting
 5. [ ] UI: landing/create-list, list view (expenses, balances, settle-up, activity), expense form, "I am" picker, mobile-first
