@@ -1,0 +1,31 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+}
+const { title = 'DivvyUp' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- List links contain secret tokens, so never leak them through the Referer header. -->
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+    <header class="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+      <div class="mx-auto flex max-w-2xl items-center px-4 py-3">
+        <a href="/" class="text-lg font-bold tracking-tight text-indigo-600 dark:text-indigo-400">DivvyUp</a>
+      </div>
+    </header>
+    <main class="mx-auto max-w-2xl px-4 py-6">
+      <slot />
+    </main>
+  </body>
+</html>

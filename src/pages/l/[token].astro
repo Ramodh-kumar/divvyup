@@ -1,0 +1,11 @@
+---
+import ListApp from '../../components/ListApp';
+import Base from '../../layouts/Base.astro';
+
+const { token } = Astro.params;
+---
+
+<Base title="DivvyUp list">
+  <!-- The list is loaded in the browser with the token from the URL; nothing about it is rendered on the server. -->
+  <ListApp client:only="react" token={token!} />
+</Base>

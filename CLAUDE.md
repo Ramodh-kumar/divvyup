@@ -37,7 +37,11 @@ Every table carries `list_id` where relevant; mutable rows have `deleted_at`.
      - Gotcha: `db.run(sql...)` type-checks but fails inside `db.batch` at runtime. Use query builders (`db.select({...}).from(...)`) for batch items.
    - [x] Slice 3b: `GET|POST /api/settlements` (`{fromMemberId, toMemberId, amountPaise, paidOn}` = "from paid to"), `DELETE /api/settlements/:id` (soft; settlements are not edited, delete and re-add), `GET /api/balances` -> `{version, balances{memberId: netPaise}, transfers[], totalSpentPaise}`. Verified end to end; 31 unit tests.
    - [x] Slice 4: `GET /api/changes?since=<version>` -> `{version, changed, events[{version, entity, entityId, action, actorMemberId, at}], hasMore}` (idle poll is one cheap response; `hasMore` means refetch everything). Rate limits in `src/lib/rate-limit.ts`: 120 writes/min per list (point lookup on the events log, no extra writes; enforced inside `authenticate(..., 'edit')`, returns 429 + Retry-After) and 10 list creations/hour per IP (`rate_limits` table, hashed IP, skipped when `CF-Connecting-IP` is absent i.e. local dev). Migration `0001_*`. Verified end to end.
-5. [ ] UI: landing/create-list, list view (expenses, balances, settle-up, activity), expense form, "I am" picker, mobile-first
+5. [ ] UI (React islands + Tailwind, light/dark via system setting, mobile-first):
+   - [x] Landing + create-list flow with share-link screen (`/`, `CreateList.tsx`, `MyLists.tsx`), list page `/l/[token]` (`ListApp.tsx`, `client:only="react"`, token read from the URL and sent as a Bearer header) with Expenses (read-only), Balances (+ "Mark as paid", undo payment) and People (add/remove) tabs, and the "Who are you?" picker. Tab is in the URL hash (`#balances`). Client code in `src/client/` (typed API client, localStorage helpers, `useListData` hook); it reuses `src/lib/money.ts`. Verified visually with headless Chrome screenshots.
+   - [ ] Add/edit/delete expense form (all four split types, multiple payers, categories, tags), with 409 conflict handling
+   - [ ] Activity feed; polish (empty states, loading skeletons)
+   - Pages set `<meta name="referrer" content="no-referrer">` and `noindex` because URLs contain secret tokens.
 6. [ ] Live sync: polling hook, 409 conflict flow, optimistic updates
 7. [ ] Retention: soft delete/undo, JSON/CSV export, JSON import, Cron Trigger for archive/purge
 8. [ ] Hardening and deploy: Turnstile on list creation, security headers, GitHub -> Cloudflare Pages, D1 migrations, README
@@ -58,4 +62,5 @@ Every table carries `list_id` where relevant; mutable rows have `deleted_at`.
 - PowerShell 5.1 `Set-Content -Encoding utf8` writes a BOM, which breaks JSON parsing (`package.json`). Write files without a BOM (use the Write tool or `[IO.File]::WriteAllText` with `UTF8Encoding($false)`).
 - npm blocked install scripts for `esbuild` and `workerd`. The build works; if wrangler or dev complains, run `npm install-scripts approve`.
 - Testing against `astro dev`: stop it with `taskkill /PID <pid> /T /F` (plain `Stop-Process` leaves child processes holding the port, and the next run silently talks to the stale server). Local D1 state lives in `.wrangler/state`; apply migrations with `npm run db:migrate:local`.
+- Visual check without a browser tool: run the dev server, seed data through the API, then `chrome.exe --headless=new --window-size=600,900 --virtual-time-budget=8000 --screenshot=<png> <url>` (Chrome is at `C:\Program Files\Google\Chrome\Application`). Headless Chrome has a minimum window width, so use 600 wide or more. The black strip at the bottom is Astro's dev toolbar.
 - `/divvyup/` (nested folder) is an old clone of this repo with only a README. It is git-ignored; safe to delete.

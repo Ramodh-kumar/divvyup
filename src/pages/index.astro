@@ -1,16 +1,18 @@
 ---
-import '../styles/global.css';
+import MyLists from '../components/MyLists';
+import CreateList from '../components/CreateList';
+import Base from '../layouts/Base.astro';
 ---
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DivvyUp</title>
-  </head>
-  <body class="min-h-screen bg-slate-50 text-slate-900">
-    <main class="mx-auto max-w-xl p-6">
-      <h1 class="text-3xl font-bold">DivvyUp</h1>
-      <p class="mt-2 text-slate-600">Split expenses with friends. Scaffold is running.</p>
-    </main>
-  </body>
-</html>
+
+<Base title="DivvyUp - split expenses with friends">
+  <div class="space-y-8">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight">Split expenses, stay friends.</h1>
+      <p class="mt-2 text-slate-600 dark:text-slate-400">
+        Make a list, add the people, and log who paid what. DivvyUp works out who owes whom. No sign-up: share a link and everyone can add expenses.
+      </p>
+    </div>
+    <CreateList client:load />
+    <MyLists client:load />
+  </div>
+</Base>
