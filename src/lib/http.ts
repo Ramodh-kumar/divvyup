@@ -5,8 +5,15 @@ export function json(data: unknown, status = 200): Response {
   });
 }
 
-export function error(status: number, message: string): Response {
-  return json({ error: message }, status);
+/** A rejected request. `current` carries the server's copy for 409 conflicts so the client can re-review. */
+export type Failure = { status: number; message: string; current?: unknown };
+
+export function error(status: number, message: string, current?: unknown): Response {
+  return json(current === undefined ? { error: message } : { error: message, current }, status);
+}
+
+export function fail(f: Failure): Response {
+  return error(f.status, f.message, f.current);
 }
 
 /** Parse a JSON object body; returns null if it is missing or not an object. */

@@ -1,11 +1,11 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { recordChange } from './changes';
 import type { Db } from './db';
+import type { Failure } from './http';
 import { LIMITS, MEMBER_COLORS } from './lists';
 import { members } from './schema';
 import { newId } from './tokens';
 
-export type Failure = { status: number; message: string };
 export type MemberView = { id: string; name: string; color: string | null };
 
 const COLOR = /^#[0-9a-f]{6}$/i;
