@@ -29,7 +29,11 @@ Every table carries `list_id` where relevant; mutable rows have `deleted_at`.
 1. [x] Scaffold: Astro + React + Tailwind + Cloudflare adapter + wrangler/D1 config + Drizzle config
 2. [x] Drizzle schema (`src/lib/schema.ts`) and first migration (`migrations/0000_*.sql`, verified against local D1)
 3. [x] Core pure logic in `src/lib/` with Vitest tests (23 passing): `money.ts` (parseRupees, formatINR), `splits.ts` (allocate via largest remainder; equal/exact/percent/shares; inputs sorted by memberId for determinism), `balances.ts` (computeBalances, suggestSettlements)
-4. [ ] API: create list, token auth middleware, CRUD (members, expenses, settlements), changes feed, rate limiting
+4. [ ] API (in slices). Conventions: token goes in `Authorization: Bearer <token>` (not the URL); the list is resolved from the token, so routes have no list id; `authenticate(db, request, 'edit'|'view')` in `src/lib/auth.ts`; DB via `getDb()` (`cloudflare:workers` env); helpers in `src/lib/http.ts`.
+   - [x] Slice 1: `POST /api/lists` (create, returns tokens once, seeds default categories + members), `GET /api/list` (snapshot + role). Verified end to end on the dev server against local D1.
+   - [ ] Slice 2: members CRUD
+   - [ ] Slice 3: expenses CRUD (validate with `splits.ts`, bump list `version`, write `events`, 409 on stale `revision`) and settlements
+   - [ ] Slice 4: changes feed (`GET /api/list/changes?since=`), rate limiting
 5. [ ] UI: landing/create-list, list view (expenses, balances, settle-up, activity), expense form, "I am" picker, mobile-first
 6. [ ] Live sync: polling hook, 409 conflict flow, optimistic updates
 7. [ ] Retention: soft delete/undo, JSON/CSV export, JSON import, Cron Trigger for archive/purge
