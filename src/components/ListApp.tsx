@@ -40,7 +40,7 @@ export default function ListApp({ token }: { token: string }) {
     setFormFor(target);
   };
   const [toast, setToast] = useState<string | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const membersRef = useRef<Member[]>([]);
 
   const { api, data, status, error, online, reload } = useListData(

@@ -9,6 +9,9 @@ export function parseRupees(input: string): number | null {
   return Number.isSafeInteger(paise) ? paise : null;
 }
 
+/** 123450 -> "1234.50": plain decimal rupees for inputs and CSV files, using integer math only. */
+export const paiseToPlain = (paise: number): string => `${Math.floor(paise / 100)}.${String(paise % 100).padStart(2, '0')}`;
+
 /** Indian digit grouping: 1234567 -> "12,34,567". */
 function groupIndian(digits: string): string {
   if (digits.length <= 3) return digits;

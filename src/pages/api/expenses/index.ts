@@ -4,6 +4,7 @@ import { getDb } from '../../../lib/db';
 import { parseExpenseInput } from '../../../lib/expense-input';
 import { createExpense, loadContext, loadExpenses } from '../../../lib/expenses';
 import { error, fail, json, readJson } from '../../../lib/http';
+import { purgeExpired } from '../../../lib/trash';
 
 // GET /api/expenses -> live expenses, newest first
 export const GET: APIRoute = async ({ request }) => {
@@ -26,5 +27,8 @@ export const POST: APIRoute = async ({ request }) => {
   if ('status' in parsed) return fail(parsed);
 
   const actor = await actorFrom(db, request, access.list.id);
-  return json(await createExpense(db, access.list.id, actor, parsed), 201);
+  const created = await createExpense(db, access.list.id, actor, parsed);
+  // No scheduled job exists on Cloudflare Pages, so clear out expired trash now and then as a side effect.
+  if (Math.random() < 0.05) await purgeExpired(db, access.list.id);
+  return json(created, 201);
 };

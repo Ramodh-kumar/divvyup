@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { recordChange } from './changes';
 import type { Db } from './db';
 import type { ExpenseContext, ParsedExpense } from './expense-input';
@@ -20,6 +20,7 @@ export interface ExpenseView {
   updatedBy: string | null;
   createdAt: number;
   updatedAt: number;
+  deletedAt: number | null; // only set for items read from the trash
   payers: SplitShare[];
   splits: SplitShare[];
   tags: string[];
@@ -33,9 +34,16 @@ export async function loadContext(db: Db, listId: string): Promise<ExpenseContex
   return { memberIds: new Set(m.map((r) => r.id)), categoryIds: new Set(c.map((r) => r.id)) };
 }
 
-/** Live expenses of a list (newest first) with payers, splits and tag names. Optionally just one. */
-export async function loadExpenses(db: Db, listId: string, onlyId?: string): Promise<ExpenseView[]> {
-  const scope = and(eq(expenses.listId, listId), isNull(expenses.deletedAt), onlyId ? eq(expenses.id, onlyId) : undefined);
+/**
+ * Live expenses of a list (newest first) with payers, splits and tag names. Optionally just one.
+ * With `deleted: true` it reads the trash (soft-deleted expenses) instead.
+ */
+export async function loadExpenses(db: Db, listId: string, onlyId?: string, deleted = false): Promise<ExpenseView[]> {
+  const scope = and(
+    eq(expenses.listId, listId),
+    deleted ? isNotNull(expenses.deletedAt) : isNull(expenses.deletedAt),
+    onlyId ? eq(expenses.id, onlyId) : undefined,
+  );
   const [rows, payerRows, splitRows, tagRows] = await Promise.all([
     db.select().from(expenses).where(scope).orderBy(desc(expenses.paidOn), sql`rowid desc`),
     db.select({ expenseId: expensePayers.expenseId, memberId: expensePayers.memberId, amountPaise: expensePayers.amountPaise })
@@ -68,6 +76,7 @@ export async function loadExpenses(db: Db, listId: string, onlyId?: string): Pro
     updatedBy: e.updatedBy,
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
+    deletedAt: e.deletedAt,
     payers: (payersBy.get(e.id) ?? []).map(({ memberId, amountPaise }) => ({ memberId, amountPaise })),
     splits: (splitsBy.get(e.id) ?? []).map(({ memberId, amountPaise }) => ({ memberId, amountPaise })),
     tags: (tagsBy.get(e.id) ?? []).map((t) => t.name).sort(),

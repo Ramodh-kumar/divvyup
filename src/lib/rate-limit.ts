@@ -49,13 +49,16 @@ async function hit(db: Db, key: string, windowSeconds: number, limit: number): P
   return row.count > limit ? window + windowSeconds - now : null;
 }
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
 /**
- * Limit list creation per client IP. Cloudflare always sets CF-Connecting-IP in production; with no
- * header (local dev) the check is skipped. IPs are hashed so raw addresses are never stored.
+ * Limit list creation per client IP. Cloudflare always sets CF-Connecting-IP in production. The check
+ * is skipped when there is no IP header, and on localhost (the dev server reports an IP too, and
+ * developing would otherwise lock you out after 10 lists). IPs are hashed so raw addresses are never stored.
  */
 export async function checkCreateRate(db: Db, request: Request): Promise<Response | null> {
   const ip = request.headers.get('cf-connecting-ip');
-  if (!ip) return null;
+  if (!ip || LOCAL_HOSTS.has(new URL(request.url).hostname)) return null;
   const retryAfter = await hit(db, `create:${(await hashToken(ip)).slice(0, 32)}`, 3600, LIMITS_CONFIG.createPerHour);
   return retryAfter === null ? null : tooMany(retryAfter);
 }

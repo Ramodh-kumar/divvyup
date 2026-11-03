@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { recordChange } from './changes';
 import type { Db } from './db';
 import { EXPENSE_LIMITS, validDate } from './expense-input';
@@ -14,6 +14,7 @@ export interface SettlementView {
   paidOn: string;
   createdBy: string | null;
   createdAt: number;
+  deletedAt: number | null; // only set for items read from the trash
 }
 
 export interface ParsedSettlement {
@@ -38,13 +39,14 @@ export function parseSettlementInput(body: Record<string, unknown>, memberIds: S
   return { fromMemberId, toMemberId, amountPaise: amountPaise as number, paidOn };
 }
 
-export async function loadSettlements(db: Db, listId: string): Promise<SettlementView[]> {
+/** Live payments, newest first. With `deleted: true` it reads the trash instead. */
+export async function loadSettlements(db: Db, listId: string, deleted = false): Promise<SettlementView[]> {
   const rows = await db
     .select()
     .from(settlements)
-    .where(and(eq(settlements.listId, listId), isNull(settlements.deletedAt)))
+    .where(and(eq(settlements.listId, listId), deleted ? isNotNull(settlements.deletedAt) : isNull(settlements.deletedAt)))
     .orderBy(desc(settlements.paidOn), sql`rowid desc`);
-  return rows.map(({ id, fromMemberId, toMemberId, amountPaise, paidOn, createdBy, createdAt }) => ({
+  return rows.map(({ id, fromMemberId, toMemberId, amountPaise, paidOn, createdBy, createdAt, deletedAt }) => ({
     id,
     fromMemberId,
     toMemberId,
@@ -52,6 +54,7 @@ export async function loadSettlements(db: Db, listId: string): Promise<Settlemen
     paidOn,
     createdBy,
     createdAt,
+    deletedAt,
   }));
 }
 

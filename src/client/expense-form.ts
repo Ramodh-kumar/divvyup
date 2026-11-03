@@ -1,6 +1,6 @@
 // Pure logic behind the expense form: draft state, live split preview, and building the API payload.
 // Kept free of React so it can be unit tested. Mirrors the server's rules so most mistakes are caught early.
-import { formatINR, parseRupees } from '../lib/money';
+import { formatINR, paiseToPlain, parseRupees } from '../lib/money';
 import { splitEqual, splitPercent, splitShares } from '../lib/splits';
 import type { Expense, Member } from './types';
 
@@ -26,8 +26,7 @@ export interface Draft {
 const byMember = <T>(members: Member[], value: (m: Member) => T): Record<string, T> =>
   Object.fromEntries(members.map((m) => [m.id, value(m)]));
 
-/** 123450 -> "1234.50" using integer math only. */
-export const paiseToInput = (p: number) => `${Math.floor(p / 100)}.${String(p % 100).padStart(2, '0')}`;
+export const paiseToInput = paiseToPlain;
 
 export function emptyDraft(members: Member[], me: string | null, date: string): Draft {
   return {
