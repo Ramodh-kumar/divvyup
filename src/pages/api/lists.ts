@@ -3,6 +3,7 @@ import { getDb } from '../../lib/db';
 import { error, json, readJson } from '../../lib/http';
 import { createList, parseCreateList } from '../../lib/lists';
 import { checkCreateRate } from '../../lib/rate-limit';
+import { checkTurnstile } from '../../lib/turnstile';
 
 // POST /api/lists  { name, members?: string[] }
 // Returns the secret edit/view tokens once. Only their hashes are stored.
@@ -10,6 +11,8 @@ export const POST: APIRoute = async ({ request }) => {
   const db = getDb();
   const limited = await checkCreateRate(db, request);
   if (limited) return limited;
+  const unverified = await checkTurnstile(request);
+  if (unverified) return unverified;
 
   const body = await readJson(request);
   if (!body) return error(400, 'Expected a JSON object');

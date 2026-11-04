@@ -3,14 +3,17 @@
   "name": "divvyup",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
-  "pages_build_output_dir": "./dist",
+  // Free, built-in request logs and errors in the Cloudflare dashboard.
+  "observability": { "enabled": true },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "divvyup",
-      // Replace with the id from `npx wrangler d1 create divvyup`
+      // Replace with the id printed by `npx wrangler d1 create divvyup`.
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
   ]
+  // Secrets are NOT stored here. TURNSTILE_SECRET is set with `npx wrangler secret put TURNSTILE_SECRET`
+  // and TURNSTILE_SITE_KEY (public) in the dashboard or the "vars" block; see README.md.
 }

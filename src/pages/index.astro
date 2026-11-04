@@ -2,7 +2,12 @@
 import ImportBackup from '../components/ImportBackup';
 import MyLists from '../components/MyLists';
 import CreateList from '../components/CreateList';
+import { getEnv } from '../lib/env';
 import Base from '../layouts/Base.astro';
+
+// Read at request time from the Worker's variables, so the key can be changed without rebuilding.
+// Empty means Turnstile is not set up and the forms skip the check.
+const turnstileSiteKey = getEnv().TURNSTILE_SITE_KEY || undefined;
 ---
 
 <Base title="DivvyUp - split expenses with friends">
@@ -14,8 +19,8 @@ import Base from '../layouts/Base.astro';
         Make a list, add the people, and log who paid what. DivvyUp works out who owes whom. No sign-up: share a link and everyone can add expenses.
       </p>
     </div>
-    <CreateList client:load />
+    <CreateList client:load turnstileSiteKey={turnstileSiteKey} />
     <MyLists client:load />
-    <ImportBackup client:load />
+    <ImportBackup client:load turnstileSiteKey={turnstileSiteKey} />
   </div>
 </Base>

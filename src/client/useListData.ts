@@ -11,9 +11,20 @@ export interface ListData {
 
 export type Status = 'loading' | 'ready' | 'notfound' | 'error';
 
-/** How often to ask the server "anything new?" while the tab is visible. An idle poll is one cheap request. */
+/**
+ * How often to ask the server "anything new?" while the tab is visible. An idle poll is one cheap request,
+ * but the free Cloudflare plan allows 100,000 Worker requests a day, so a quiet list backs off:
+ * fast right after activity or when you come back to the tab, then slower the longer nothing changes.
+ */
 export const POLL_MS = 8_000;
 const MAX_BACKOFF_MS = 60_000;
+
+/** Delay before the next poll given how many polls in a row found nothing new. */
+export function pollDelay(quietPolls: number): number {
+  if (quietPolls < 10) return POLL_MS; // ~80s of fast polling after activity
+  if (quietPolls < 30) return 15_000; // then ~5 min at 15s
+  return 30_000; // then settle at 30s
+}
 
 /**
  * Loads everything a list screen needs and keeps it fresh.
@@ -70,6 +81,7 @@ export function useListData(token: string, getActor: () => string | null, onRemo
     if (status !== 'ready') return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let delay = POLL_MS;
+    let quiet = 0; // consecutive polls that found nothing new
     let stopped = false;
     let inFlight = false;
 
@@ -83,12 +95,15 @@ export function useListData(token: string, getActor: () => string | null, onRemo
       inFlight = true;
       try {
         const r = await api.changes(version.current);
-        delay = POLL_MS;
         setOnline(true);
         if (r.changed) {
+          quiet = 0;
           await reload();
           remoteCb.current?.(r.events);
+        } else {
+          quiet++;
         }
+        delay = pollDelay(quiet);
       } catch (e) {
         if (e instanceof ApiError && (e.status === 404 || e.status === 401)) {
           setStatus('notfound');
@@ -106,6 +121,7 @@ export function useListData(token: string, getActor: () => string | null, onRemo
     const wake = () => {
       if (document.hidden) return;
       clearTimeout(timer);
+      quiet = 0;
       delay = POLL_MS;
       tick();
     };

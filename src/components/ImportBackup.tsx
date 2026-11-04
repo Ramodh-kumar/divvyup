@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { ApiError, importBackup, type ImportedList } from '../client/api';
 import { saveList } from '../client/storage';
 import ShareLinks from './ShareLinks';
+import Turnstile from './Turnstile';
 import { ErrorNote } from './ui';
 
 const MAX_BYTES = 5_000_000;
 
 /** Home-page control: turn a DivvyUp JSON backup back into a list (always a new one). */
-export default function ImportBackup() {
+export default function ImportBackup({ turnstileSiteKey }: { turnstileSiteKey?: string }) {
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +26,7 @@ export default function ImportBackup() {
     setBusy(true);
     try {
       const text = await file.text();
-      const data = await importBackup(text);
+      const data = await importBackup(text, captcha);
       let name = 'Imported list';
       try {
         name = JSON.parse(text).list?.name ?? name;
@@ -36,6 +39,7 @@ export default function ImportBackup() {
       setError(e instanceof ApiError ? e.message : 'Could not read that file.');
     } finally {
       setBusy(false);
+      setCaptchaReset((n) => n + 1); // single-use token: get a fresh challenge for the next attempt
     }
   }
 
@@ -61,12 +65,13 @@ export default function ImportBackup() {
           <p className="text-slate-600 dark:text-slate-400">
             Choose a <strong>.json</strong> backup you downloaded from DivvyUp. It becomes a new list with new links; nothing existing is changed.
           </p>
+          {turnstileSiteKey && <Turnstile siteKey={turnstileSiteKey} onToken={setCaptcha} resetKey={captchaReset} />}
           <label className="block">
             <span className="sr-only">Backup file</span>
             <input
               type="file"
               accept=".json,application/json"
-              disabled={busy}
+              disabled={busy || (Boolean(turnstileSiteKey) && !captcha)}
               onChange={(e) => {
                 onFile(e.target.files?.[0]);
                 e.target.value = '';

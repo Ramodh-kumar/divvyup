@@ -2,9 +2,13 @@ import { useState } from 'react';
 import { ApiError, createList, type CreatedList } from '../client/api';
 import { saveList } from '../client/storage';
 import ShareLinks from './ShareLinks';
+import Turnstile from './Turnstile';
 import { btnPrimary, btnSecondary, card, ErrorNote, input } from './ui';
 
-export default function CreateList() {
+export default function CreateList({ turnstileSiteKey }: { turnstileSiteKey?: string }) {
+  // Only present once Turnstile is configured on the server; then a solved check is required to create a list.
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [name, setName] = useState('');
   const [people, setPeople] = useState<string[]>([]);
   const [draft, setDraft] = useState('');
@@ -30,13 +34,14 @@ export default function CreateList() {
     setBusy(true);
     setError(null);
     try {
-      const data = await createList(name.trim(), all);
+      const data = await createList(name.trim(), all, captcha);
       saveList({ token: data.editToken, name: name.trim(), role: 'edit', viewToken: data.viewToken });
       setCreated({ name: name.trim(), data });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setBusy(false);
+      setCaptchaReset((n) => n + 1); // the token is single use, so get a fresh challenge for any retry
     }
   }
 
@@ -89,8 +94,10 @@ export default function CreateList() {
         <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">You can add more people later.</p>
       </div>
 
+      {turnstileSiteKey && <Turnstile siteKey={turnstileSiteKey} onToken={setCaptcha} resetKey={captchaReset} />}
+
       <ErrorNote message={error} />
-      <button type="submit" className={`${btnPrimary} w-full`} disabled={busy || !name.trim()}>
+      <button type="submit" className={`${btnPrimary} w-full`} disabled={busy || !name.trim() || (Boolean(turnstileSiteKey) && !captcha)}>
         {busy ? 'Creating…' : 'Create list'}
       </button>
     </form>

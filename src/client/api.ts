@@ -10,8 +10,12 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, opts: { token?: string; actor?: string | null; body?: unknown } = {}): Promise<T> {
-  const headers: Record<string, string> = {};
+async function request<T>(
+  method: string,
+  path: string,
+  opts: { token?: string; actor?: string | null; body?: unknown; headers?: Record<string, string> } = {},
+): Promise<T> {
+  const headers: Record<string, string> = { ...opts.headers };
   if (opts.token) headers.authorization = `Bearer ${opts.token}`;
   if (opts.actor) headers['x-member-id'] = opts.actor;
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
@@ -33,8 +37,9 @@ export interface CreatedList {
   members: { id: string; name: string }[];
 }
 
-export const createList = (name: string, members: string[]) =>
-  request<CreatedList>('POST', '/api/lists', { body: { name, members } });
+/** `captcha` is a Turnstile token; the server only requires it once Turnstile is configured. */
+export const createList = (name: string, members: string[], captcha?: string | null) =>
+  request<CreatedList>('POST', '/api/lists', { body: { name, members }, headers: captcha ? { 'x-turnstile-token': captcha } : undefined });
 
 export interface ImportedList {
   editToken: string;
@@ -43,10 +48,14 @@ export interface ImportedList {
 }
 
 /** Send the text of a DivvyUp JSON backup; it always becomes a brand new list. */
-export async function importBackup(json: string): Promise<ImportedList> {
+export async function importBackup(json: string, captcha?: string | null): Promise<ImportedList> {
   let res: Response;
   try {
-    res = await fetch('/api/import', { method: 'POST', headers: { 'content-type': 'application/json' }, body: json });
+    res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(captcha ? { 'x-turnstile-token': captcha } : {}) },
+      body: json,
+    });
   } catch {
     throw new ApiError(0, 'You appear to be offline. Check your connection and try again.');
   }
