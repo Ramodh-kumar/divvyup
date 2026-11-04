@@ -9,8 +9,8 @@
     {
       "binding": "DB",
       "database_name": "divvyup",
-      // Replace with the id printed by `npx wrangler d1 create divvyup`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // From `npx wrangler d1 create divvyup`. The id is not a secret; access is controlled by your Cloudflare login.
+      "database_id": "6d0d3b41-d80f-4acd-9f72-fab75c33b6ea",
       "migrations_dir": "migrations"
     }
   ]
