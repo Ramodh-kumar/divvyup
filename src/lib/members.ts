@@ -71,22 +71,32 @@ export async function updateMember(
   return view(next);
 }
 
-/** Number of live expenses and settlements that still involve this member. */
-async function usageCount(db: Db, id: string): Promise<number> {
-  const row = await db.get<{ n: number }>(sql`select (
-    (select count(*) from expense_payers p join expenses e on e.id = p.expense_id where p.member_id = ${id} and e.deleted_at is null) +
-    (select count(*) from expense_splits s join expenses e on e.id = s.expense_id where s.member_id = ${id} and e.deleted_at is null) +
-    (select count(*) from settlements t where (t.from_member_id = ${id} or t.to_member_id = ${id}) and t.deleted_at is null)
-  ) as n`);
-  return row?.n ?? 0;
+/** Live expenses and payments that still involve this member, as short labels (descriptions / "Payment on <date>"). */
+async function usageLabels(db: Db, id: string): Promise<string[]> {
+  const rows = await db.all<{ label: string }>(sql`
+    select e.description as label, e.paid_on as d from expenses e
+      where e.deleted_at is null and (
+        exists (select 1 from expense_payers p where p.expense_id = e.id and p.member_id = ${id}) or
+        exists (select 1 from expense_splits s where s.expense_id = e.id and s.member_id = ${id}))
+    union all
+    select 'Payment on ' || t.paid_on as label, t.paid_on as d from settlements t
+      where t.deleted_at is null and (t.from_member_id = ${id} or t.to_member_id = ${id})
+    order by d desc`);
+  return rows.map((r) => r.label);
 }
 
 /** Soft delete. Refused while the member still appears in expenses or settlements, since that would corrupt balances. */
 export async function removeMember(db: Db, listId: string, actor: string | null, id: string): Promise<true | Failure> {
   const existing = (await activeMembers(db, listId)).find((m) => m.id === id);
   if (!existing) return { status: 404, message: 'Member not found' };
-  if ((await usageCount(db, id)) > 0) {
-    return { status: 409, message: 'This member is part of existing expenses or settlements. Remove those first.' };
+  const used = await usageLabels(db, id);
+  if (used.length > 0) {
+    const shown = used.slice(0, 5).join(', ');
+    const more = used.length > 5 ? ` and ${used.length - 5} more` : '';
+    return {
+      status: 409,
+      message: `${existing.name} can't be removed yet: they are part of ${shown}${more}. Delete or edit ${used.length === 1 ? 'it' : 'those'} first (deleted items go to More > Recently deleted).`,
+    };
   }
   await db.batch([
     db.update(members).set({ deletedAt: sql`(unixepoch())` }).where(and(eq(members.id, id), eq(members.listId, listId))),
