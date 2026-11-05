@@ -3,7 +3,7 @@ import { ApiError, type Api } from '../client/api';
 import { formatDate, today } from '../client/format';
 import type { Balances, Member, Settlement } from '../client/types';
 import { formatINR } from '../lib/money';
-import { Avatar, btnSecondary, card, ErrorNote } from './ui';
+import { Avatar, card, ErrorNote } from './ui';
 
 interface Props {
   balances: Balances;
@@ -15,12 +15,12 @@ interface Props {
   onChanged: () => Promise<void>;
 }
 
-/** Avatar above a name, one end of a "who pays whom" arrow. */
+/** Avatar with a name below it, one end of a "who pays whom" arrow. */
 function Person({ member, label }: { member: Member | undefined; label: string }) {
   return (
-    <span className="flex w-16 shrink-0 flex-col items-center gap-1 text-center">
-      <Avatar member={member ?? { name: label, color: null }} size={40} />
-      <span className="w-full truncate text-sm font-semibold">{label}</span>
+    <span className="flex w-14 shrink-0 flex-col items-center text-center">
+      <Avatar member={member ?? { name: label, color: null }} size={28} />
+      <span className="w-full truncate text-xs font-semibold">{label}</span>
     </span>
   );
 }
@@ -55,42 +55,48 @@ export default function BalancesTab({ balances, settlements, members, me, canEdi
       <section className={card} aria-labelledby="settle-h">
         <h3 id="settle-h" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Who pays whom
+          {canEdit && !settled && <span className="ml-2 text-xs font-normal normal-case tracking-normal">tap ✓ once paid</span>}
         </h3>
         {settled ? (
           <p className="text-sm text-slate-600 dark:text-slate-400">{balances.totalSpentPaise === 0 && settlements.length === 0 ? 'Nothing to settle yet.' : 'Everyone is settled up. 🎉'}</p>
         ) : (
-          <ul className="flex flex-col gap-4">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {balances.transfers.map((t) => {
               const key = `${t.from}>${t.to}`;
-              const from = byId.get(t.from);
-              const to = byId.get(t.to);
+              const label = `${name(t.from)} ${verb(t.from)} ${whom(t.to)} ${formatINR(t.amountPaise)}`;
               return (
-                <li key={key} className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60" aria-label={`${name(t.from)} ${verb(t.from)} ${whom(t.to)} ${formatINR(t.amountPaise)}`}>
-                  <div className="flex items-center gap-2">
-                    <Person member={from} label={name(t.from)} />
-                    <div className="flex min-w-0 flex-1 flex-col items-center">
-                      <span className="text-base font-bold tabular-nums">{formatINR(t.amountPaise)}</span>
-                      <span className="flex w-full items-center text-slate-400" aria-hidden="true">
-                        <span className="h-0.5 flex-1 rounded bg-current" />
-                        <svg viewBox="0 0 10 12" className="-ml-1 h-3 w-2.5 fill-current">
-                          <path d="M0 0 L10 6 L0 12 Z" />
-                        </svg>
-                      </span>
-                    </div>
-                    <Person member={to} label={name(t.to)} />
+                <li key={key} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0" aria-label={label}>
+                  <Person member={byId.get(t.from)} label={name(t.from)} />
+                  <div className="flex min-w-0 flex-1 flex-col items-center">
+                    <span className="text-sm font-bold tabular-nums">{formatINR(t.amountPaise)}</span>
+                    <span className="flex w-full items-center text-slate-400" aria-hidden="true">
+                      <span className="h-0.5 flex-1 rounded bg-current" />
+                      <svg viewBox="0 0 10 12" className="-ml-1 h-3 w-2.5 fill-current">
+                        <path d="M0 0 L10 6 L0 12 Z" />
+                      </svg>
+                    </span>
                   </div>
+                  <Person member={byId.get(t.to)} label={name(t.to)} />
                   {canEdit && (
                     <button
                       type="button"
-                      className={btnSecondary}
+                      className="ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-emerald-950"
                       disabled={busy !== null}
+                      aria-label={`Mark as paid: ${label}`}
+                      title="Mark as paid"
                       onClick={() => {
                         if (confirm(`Record that ${name(t.from)} paid ${name(t.to)} ${formatINR(t.amountPaise)}?`)) {
                           run(key, () => api.addSettlement({ fromMemberId: t.from, toMemberId: t.to, amountPaise: t.amountPaise, paidOn: today() }));
                         }
                       }}
                     >
-                      {busy === key ? 'Saving…' : 'Mark as paid'}
+                      {busy === key ? (
+                        <span className="text-xs">…</span>
+                      ) : (
+                        <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 8.5l3.2 3.2L13 4.5" />
+                        </svg>
+                      )}
                     </button>
                   )}
                 </li>
