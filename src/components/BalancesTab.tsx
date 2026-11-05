@@ -20,6 +20,7 @@ export default function BalancesTab({ balances, settlements, members, me, canEdi
   const [error, setError] = useState<string | null>(null);
   const byId = new Map(members.map((m) => [m.id, m]));
   const name = (id: string) => (id === me ? 'You' : byId.get(id)?.name ?? 'Someone');
+  const whom = (id: string) => (id === me ? 'you' : byId.get(id)?.name ?? 'Someone');
   const verb = (id: string) => (id === me ? 'pay' : 'pays');
 
   async function run(key: string, action: () => Promise<unknown>) {
@@ -51,10 +52,22 @@ export default function BalancesTab({ balances, settlements, members, me, canEdi
           <ul className="space-y-3">
             {members.map((m) => {
               const v = balances.balances[m.id] ?? 0;
+              // Who this person pays, or who pays them, from the suggested settle-up transfers.
+              const hints = [
+                ...balances.transfers.filter((t) => t.from === m.id).map((t) => `${m.id === me ? 'Pay' : 'Pays'} ${whom(t.to)} ${formatINR(t.amountPaise)}`),
+                ...balances.transfers.filter((t) => t.to === m.id).map((t) => `Gets ${formatINR(t.amountPaise)} from ${name(t.from)}`),
+              ];
               return (
                 <li key={m.id} className="flex items-center gap-3">
                   <Avatar member={m} />
-                  <span className="flex-1 font-medium">{m.id === me ? `${m.name} (you)` : m.name}</span>
+                  <span className="flex-1">
+                    <span className="block font-medium">{m.id === me ? `${m.name} (you)` : m.name}</span>
+                    {hints.map((h) => (
+                      <span key={h} className="block text-xs text-slate-500 dark:text-slate-400">
+                        {h}
+                      </span>
+                    ))}
+                  </span>
                   <span className={`text-sm font-semibold tabular-nums ${v > 0 ? 'text-emerald-600 dark:text-emerald-400' : v < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}`}>
                     {v === 0 ? 'settled up' : v > 0 ? `gets back ${formatINR(v)}` : `owes ${formatINR(-v)}`}
                   </span>
@@ -78,7 +91,7 @@ export default function BalancesTab({ balances, settlements, members, me, canEdi
               return (
                 <li key={key} className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm">
-                    <strong>{name(t.from)}</strong> {verb(t.from)} <strong>{name(t.to)}</strong> <strong className="tabular-nums">{formatINR(t.amountPaise)}</strong>
+                    <strong>{name(t.from)}</strong> {verb(t.from)} <strong>{whom(t.to)}</strong> <strong className="tabular-nums">{formatINR(t.amountPaise)}</strong>
                   </span>
                   {canEdit && (
                     <button
