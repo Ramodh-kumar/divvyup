@@ -15,6 +15,16 @@ interface Props {
   onChanged: () => Promise<void>;
 }
 
+/** Avatar above a name, one end of a "who pays whom" arrow. */
+function Person({ member, label }: { member: Member | undefined; label: string }) {
+  return (
+    <span className="flex w-16 shrink-0 flex-col items-center gap-1 text-center">
+      <Avatar member={member ?? { name: label, color: null }} size={40} />
+      <span className="w-full truncate text-sm font-semibold">{label}</span>
+    </span>
+  );
+}
+
 export default function BalancesTab({ balances, settlements, members, me, canEdit, api, onChanged }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,57 +52,33 @@ export default function BalancesTab({ balances, settlements, members, me, canEdi
     <div className="space-y-6">
       <ErrorNote message={error} />
 
-      <section className={card} aria-labelledby="balances-h">
-        <h3 id="balances-h" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Balances
-        </h3>
-        {members.length === 0 ? (
-          <p className="text-sm text-slate-600 dark:text-slate-400">Add people in the People tab first.</p>
-        ) : (
-          <ul className="space-y-3">
-            {members.map((m) => {
-              const v = balances.balances[m.id] ?? 0;
-              // Who this person pays, or who pays them, from the suggested settle-up transfers.
-              const hints = [
-                ...balances.transfers.filter((t) => t.from === m.id).map((t) => `${m.id === me ? 'Pay' : 'Pays'} ${whom(t.to)} ${formatINR(t.amountPaise)}`),
-                ...balances.transfers.filter((t) => t.to === m.id).map((t) => `Gets ${formatINR(t.amountPaise)} from ${name(t.from)}`),
-              ];
-              return (
-                <li key={m.id} className="flex items-center gap-3">
-                  <Avatar member={m} />
-                  <span className="flex-1">
-                    <span className="block font-medium">{m.id === me ? `${m.name} (you)` : m.name}</span>
-                    {hints.map((h) => (
-                      <span key={h} className="block text-xs text-slate-500 dark:text-slate-400">
-                        {h}
-                      </span>
-                    ))}
-                  </span>
-                  <span className={`text-sm font-semibold tabular-nums ${v > 0 ? 'text-emerald-600 dark:text-emerald-400' : v < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}`}>
-                    {v === 0 ? 'settled up' : v > 0 ? `gets back ${formatINR(v)}` : `owes ${formatINR(-v)}`}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
       <section className={card} aria-labelledby="settle-h">
         <h3 id="settle-h" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Settle up
+          Who pays whom
         </h3>
         {settled ? (
           <p className="text-sm text-slate-600 dark:text-slate-400">{balances.totalSpentPaise === 0 && settlements.length === 0 ? 'Nothing to settle yet.' : 'Everyone is settled up. 🎉'}</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="flex flex-col gap-4">
             {balances.transfers.map((t) => {
               const key = `${t.from}>${t.to}`;
+              const from = byId.get(t.from);
+              const to = byId.get(t.to);
               return (
-                <li key={key} className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm">
-                    <strong>{name(t.from)}</strong> {verb(t.from)} <strong>{whom(t.to)}</strong> <strong className="tabular-nums">{formatINR(t.amountPaise)}</strong>
-                  </span>
+                <li key={key} className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60" aria-label={`${name(t.from)} ${verb(t.from)} ${whom(t.to)} ${formatINR(t.amountPaise)}`}>
+                  <div className="flex items-center gap-2">
+                    <Person member={from} label={name(t.from)} />
+                    <div className="flex min-w-0 flex-1 flex-col items-center">
+                      <span className="text-base font-bold tabular-nums">{formatINR(t.amountPaise)}</span>
+                      <span className="flex w-full items-center text-slate-400" aria-hidden="true">
+                        <span className="h-0.5 flex-1 rounded bg-current" />
+                        <svg viewBox="0 0 10 12" className="-ml-1 h-3 w-2.5 fill-current">
+                          <path d="M0 0 L10 6 L0 12 Z" />
+                        </svg>
+                      </span>
+                    </div>
+                    <Person member={to} label={name(t.to)} />
+                  </div>
                   {canEdit && (
                     <button
                       type="button"
@@ -107,6 +93,30 @@ export default function BalancesTab({ balances, settlements, members, me, canEdi
                       {busy === key ? 'Saving…' : 'Mark as paid'}
                     </button>
                   )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className={card} aria-labelledby="balances-h">
+        <h3 id="balances-h" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          Balances
+        </h3>
+        {members.length === 0 ? (
+          <p className="text-sm text-slate-600 dark:text-slate-400">Add people in the People tab first.</p>
+        ) : (
+          <ul className="space-y-3">
+            {members.map((m) => {
+              const v = balances.balances[m.id] ?? 0;
+              return (
+                <li key={m.id} className="flex items-center gap-3">
+                  <Avatar member={m} />
+                  <span className="flex-1 font-medium">{m.id === me ? `${m.name} (you)` : m.name}</span>
+                  <span className={`text-sm font-semibold tabular-nums ${v > 0 ? 'text-emerald-600 dark:text-emerald-400' : v < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}`}>
+                    {v === 0 ? 'settled up' : v > 0 ? `gets back ${formatINR(v)}` : `owes ${formatINR(-v)}`}
+                  </span>
                 </li>
               );
             })}
